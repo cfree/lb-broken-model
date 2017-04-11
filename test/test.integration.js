@@ -21,7 +21,7 @@ describe('/test', () => {
   });
 
   describe('/2', () => {
-    it('should fail with a 502', done => {
+    it('should intercept a request, then fail with a 502', done => {
       request.get('/api/tests/2')
         .end((err, res) => {
           expect(res).to.have.status(502);
@@ -31,7 +31,7 @@ describe('/test', () => {
   });
 
   describe('/3', () => {
-    it('should fail with a 503', done => {
+    it('uses promises and should fail with a 503', done => {
       request.get('/api/tests/3')
         .end((err, res) => {
           expect(res).to.have.status(503);
@@ -39,7 +39,7 @@ describe('/test', () => {
         });
     });
 
-    it('should fail with a 504', done => {
+    it('uses promises and should intercept a request, then fail with a 504', done => {
       nock('http://aol.com')
         .get()
         .replyWithError('ECONNREFUSED');
