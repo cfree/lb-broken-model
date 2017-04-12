@@ -1,8 +1,28 @@
 'use strict';
 
 const request = require('request');
+const CommandsFactory = require('hystrixjs').commandFactory;
+const hystrixConfig = require('hystrixjs').hystrixConfig;
+hystrixConfig.init({'hystrix.promise.implementation': Promise});
 
 module.exports = function(Test) {
+  Test.sampleRemoteMethod0 = (callback) => {
+    // 1 Test success
+    callback(null, 'Success');
+  };
+
+  Test.remoteMethod('sampleRemoteMethod0', {
+    http: {
+      path: '/0/',
+      verb: 'get',
+    },
+    returns: {
+      arg: 'body',  
+      type: 'object',
+      root: true,
+    },
+  });
+  
   Test.sampleRemoteMethod1 = (callback) => {
     // 1 Test failure
     const customErr = new Error('This doesn\'t work');
@@ -48,8 +68,11 @@ module.exports = function(Test) {
     // 3 Test failure with middle using promises
     const requestPromise = new Promise((resolve, reject) => {
       request('http://aol.com', (err, res, body) => {
+        console.log('ERR', err);
         if (err) {
           reject(err);
+        } else if (res.statusCode && res.statusCode === 500) {
+          return reject(res.statusCode);
         } else {
           resolve(body);
         }
@@ -57,9 +80,7 @@ module.exports = function(Test) {
     });
 
     return requestPromise.then(data => {
-      const customErr = new Error('This doesn\'t work either');
-      customErr.status = 503;
-      return callback(customErr);
+      return callback(null, 'This worked');
     })
     .catch(err => {
       const customErr = new Error('Still not working');
@@ -71,6 +92,55 @@ module.exports = function(Test) {
   Test.remoteMethod('sampleRemoteMethod3', {
     http: {
       path: '/3/',
+      verb: 'get',
+    },
+    returns: {
+      arg: 'body',  
+      type: 'object',
+      root: true,
+    },
+  });
+
+  Test.sampleRemoteMethod4 = (callback) => {
+    // 4 Test failure with middle using promises and hystrixjs
+
+    const requestPromise = () => new Promise((resolve, reject) => {
+      request('http://aol.com', (err, res, body) => {
+        console.log('ERR', err);
+        if (err) {
+          return reject(err);
+        } else if (res.statusCode && res.statusCode === 500) {
+          return reject(res.statusCode);
+        } else {
+          return resolve(body);
+        }
+      });
+    });
+
+    const serviceCommand = CommandsFactory.getOrCreate('Service started')
+      .run(requestPromise)
+      .fallbackTo((data) => {
+        console.error('Fell back');
+        return Promise.reject(data);
+      })
+      .build();
+
+    return serviceCommand.execute()
+      .then(data => {
+        const customErr = new Error('Nope');
+        customErr.status = 505;
+        return callback(customErr);
+      })
+      .catch(err => {
+        const customErr = new Error('Still no');
+        customErr.status = 506;
+        return callback(customErr);
+      });
+  };
+
+  Test.remoteMethod('sampleRemoteMethod4', {
+    http: {
+      path: '/4/',
       verb: 'get',
     },
     returns: {

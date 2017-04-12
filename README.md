@@ -1,6 +1,22 @@
 # Broken Model
 
-Testing failures in Loopback. The following is the output of the integration tests:
+## Findings
+
+While testing responses in Loopback using promises, it was noticed that Loopback reports unhandled errors to the console despite the request succeeding. Somewhat related is the `UnhandledPromiseRejectionWarning` error when a promise successfully finishes. 
+
+Success (using promises): 
+```
+(node:21617) UnhandledPromiseRejectionWarning: Unhandled promise rejection (rejection id: 1): Error: Callback was already called.
+```
+
+Failure (all requests):
+```
+Unhandled error for request GET /tests/3: Error: Still not working
+    at requestPromise.then.catch.err (.../server/models/test.js:86:25)
+    at process._tickCallback (internal/process/next_tick.js:103:7
+```
+
+The following is a sample of output from the integration tests:
 
 ```
 > mocha --recursive './test/**/*.integration.js'
@@ -76,5 +92,5 @@ Unhandled error for request GET /tests/3: Error: Still not working
       ✓ should fail with a 504
 
 
-  4 passing (1s)
+  ...
 ```
